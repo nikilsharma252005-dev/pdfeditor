@@ -1,55 +1,49 @@
 # Structured HTML Document Editor
 
-A browser-based structured document editor built using HTML, CSS, and JavaScript.
+A browser-based structured document editor that enables real-time editing, section-aware table management, and print-optimized PDF/HTML exports.
 
-This project loads a pre-converted document template (`doc.html`) inside an iframe and enables full in-browser editing, structured table manipulation, and professional PDF export formatting.
+Designed for handling complex document layouts converted from PDF while preserving structure and formatting.
 
 ---
 
 ## Project Overview
 
-The system is designed to:
+This application loads a converted document template (`doc.html`) inside an iframe and enables controlled editing through the main interface (`index.html`).
 
-- Load a converted document template (originally derived from a PDF)
-- Allow direct in-browser editing
-- Maintain structured table formatting
-- Dynamically manage content growth
-- Export the final edited document as HTML or PDF
-
-The document automatically adjusts layout and formatting to ensure clean PDF output.
+The system maintains structured formatting while allowing dynamic content updates and professional export functionality.
 
 ---
 
-## ✨ Core Features
+## Core Features
 
-### 📝 1. Full Document Editing
+### 📝 Full Document Editing
 - Entire document body is editable
-- Supports inline text modification
-- Preserves structured layout formatting
+- Inline text modification
+- Preserves structured layout and formatting
 
-### 📊 2. Dynamic Table Row Management
-- Add rows within specific document sections
+### 📊 Section-Based Table Management
+- Add rows within defined document sections
 - Delete rows safely within section boundaries
-- Section-based control logic
-- Maintains consistent border and formatting styles
+- Maintains consistent border and layout styling
+- Prevents structural breakage
 
-### 📄 3. Automatic Page Flow Handling
+### 📄 Automatic Page Flow Handling
 - No manual page creation required
-- As content increases, layout naturally flows to new pages
-- Print-optimized page-break handling for clean PDF output
+- Content automatically flows across pages
+- Optimized for clean A4 PDF printing
 
-### 📥 4. Export Options
+### 📥 Export Options
 
-#### ✔ Download as PDF
-- Clean A4 print layout
-- Automatic formatting adjustments
+####  Download as PDF
+- Print-optimized A4 layout
 - Removes editing controls during export
-- Prevents right-side content cut-off
+- Prevents layout overflow and right-side cut-off
+- Maintains table formatting
 
-#### ✔ Download as HTML
+####  Download as HTML
 - Saves fully edited document
-- Removes editing controls
-- Preserves structure and formatting
+- Removes editing UI elements
+- Preserves structure and styling
 
 ---
 
@@ -58,17 +52,18 @@ The document automatically adjusts layout and formatting to ensure clean PDF out
 - HTML5
 - CSS3
 - JavaScript (Vanilla JS)
-- html2canvas (CDN)
 - jsPDF (CDN)
+- html2canvas (CDN)
 
 ---
 
 ## 📂 Project Structure
 
-/project-folder
-│── index.html (Main editor interface)
-│── doc.html (Base structured document template)
-│── start-server.bat (Optional server runner)
+project-folder/
+
+│── index.html # Main editor interface
+│── doc.html # Base structured document template
+│── start-server.bat # Optional server launcher
 │── README.md
 
 
@@ -76,51 +71,38 @@ The document automatically adjusts layout and formatting to ensure clean PDF out
 
 ## 🚀 How to Run the Project
 
-### Option 1: Run from Visual Studio Code
-
+### Option 1: Using Visual Studio Code
 1. Open the project folder in VS Code
 2. Open `index.html`
-3. Run using Live Server OR open directly in browser
+3. Run using Live Server or open in browser
 
 (No server required in this mode)
 
 ---
 
-### Option 2: Run from File Explorer
-
-If opening directly from File Explorer:
-
+### Option 2: Using File Explorer
 1. Double-click `start-server.bat`
-2. This starts a local server
+2. A local server will start
 3. Open the provided local URL in your browser
 
-⚠ Running through the batch file ensures proper document loading in some environments.
+Running via the batch file ensures proper loading in certain environments.
 
 ---
 
-## ⚙️ Technical Highlights
+## ⚙ Technical Highlights
 
-- Uses iframe-based document isolation
-- Dynamically injects styles into loaded document
-- Section-aware table manipulation logic
-- Print-optimized CSS injection
-- Controlled removal of UI elements during export
-- Structured DOM manipulation without external frameworks
-
----
-
-## 📌 Use Case
-
-This project demonstrates:
-
-- Advanced DOM manipulation
-- Structured document editing
-- Dynamic layout control
-- Client-side PDF generation
-- Controlled print rendering
+- iframe-based document isolation
+- Dynamic CSS injection
+- Controlled DOM manipulation
+- Section-aware row insertion logic
+- Print-optimized styling
+- Clean export workflow handling
 
 ---
 
-## 📄 License
+## 📌 Purpose
 
-Created for demonstration and professional development purposes.
+This project demonstrates advanced client-side document manipulation, structured editing workflows, and optimized PDF export handling without relying on backend frameworks.
+
+---
+
