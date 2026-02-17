@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editable Document Viewer</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f9f9f9; }
+    #editor { width: 100%; height: 90vh; border: none; }
+    #controls {
+      padding: 10px;
+      background: #ffffff;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 4px;
+      border: none;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      color: #fff;
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    }
+    button:hover {
+      background: linear-gradient(135deg, #2575fc, #6a11cb);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(0,0,0,0.3);
+    }
+
+    .controls-row td {
+      background: #f3f3f3;
+      text-align: left;
+      padding: 6px;
+      border-bottom: 1px solid #eee;
+    }
+    .table-controls {
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+<div id="controls">
+  <button id="downloadPdfBtn">Download PDF</button>
+  <button id="downloadHtmlBtn">Download HTML</button>
+</div>
+<iframe id="editor" src="doc.html"></iframe>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const iframe = document.getElementById("editor");
+const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+const downloadHtmlBtn = document.getElementById("downloadHtmlBtn");
+const { jsPDF } = window.jspdf;
+
+iframe.onload = () => {
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  if (!doc.querySelector(".container")) {
+    const bodyChildren = Array.from(doc.body.childNodes);
+    const containerDiv = doc.createElement("div");
+    containerDiv.className = "container";
+    bodyChildren.forEach(node => containerDiv.appendChild(node));
+    doc.body.innerHTML = "";
+    doc.body.appendChild(containerDiv);
+  }
+  doc.body.contentEditable = true;
+
+  // 🔹 Inject CSS (table + upgraded Add/Delete row buttons)
+  const style = doc.createElement("style");
+  style.textContent = `
+    .container { max-width: 900px; margin: 0 auto; padding: 10px; box-sizing: border-box; }
+    .container table { border: 1px solid #666; border-collapse: collapse; width: 100%; table-layout: fixed; margin-bottom: 10px; }
+    .container td, .container th {
+      border: 1px solid #999;
+      padding: 8px;
+      min-height: 20px;
+      max-width: 250px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      vertical-align: top;
+      cursor: text;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+    }
+    .TableParagraph { font-family: Arial, sans-serif; font-size: 12pt; color: #171717; margin-top: 4.5pt; margin-left: 5.8pt; }
+    .container img { max-width: 100%; height: auto; display: block; }
+    .container table, .container tr, .container td, .container th { page-break-inside: avoid; }
+    .page-break { page-break-before: always; }
+
+    /* ✅ Upgraded Add/Delete Row Buttons inside iframe */
+    .table-controls button {
+      font-size: 13px;
+      padding: 8px 16px;
+      margin: 4px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #fff;
+      transition: all 0.3s ease;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+      
+    }
+    .table-controls button:first-child {
+      background: linear-gradient(135deg, #28a745, #218838);
+    }
+    .table-controls button:last-child {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+    .table-controls button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(0,0,0,0.3);
+      filter: brightness(1.1);
+    }
+  `;
+  (doc.head || doc.documentElement).appendChild(style);
+
+  // ✅ FIX: scale content for PDF export to avoid right cut-off
+  const pdfStyle = doc.createElement("style");
+  pdfStyle.textContent = `
+    @media print {
+      @page { size: A4 portrait; margin: 10mm; }
+      body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .container { width: 100% !important; max-width: 100% !important; }
+      table { width: 100% !important; table-layout: fixed !important; }
+      th, td { border: 1px solid black !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+    }
+  `;
+  doc.head.appendChild(pdfStyle);
+
+  doc.querySelectorAll(".sec").forEach(sectionRow => {
+    const table = sectionRow.closest("table");
+    const allRows = Array.from(table.rows);
+    const secIndex = allRows.indexOf(sectionRow);
+    let nextSecIndex = allRows.findIndex((r,i) => i > secIndex && r.classList.contains("sec"));
+    if (nextSecIndex === -1) nextSecIndex = allRows.length;
+    let controlsContainer = doc.createElement("div");
+    controlsContainer.className = "table-controls";
+    const btnAdd = doc.createElement("button");
+    btnAdd.textContent = "Add Row";
+    const btnDel = doc.createElement("button");
+    btnDel.textContent = "Delete Row";
+    controlsContainer.appendChild(btnAdd);
+    controlsContainer.appendChild(btnDel);
+    const controlsRow = table.insertRow(nextSecIndex);
+    const controlsCell = controlsRow.insertCell(0);
+    controlsCell.colSpan = sectionRow.cells.length;
+    controlsCell.style.padding = "6px";
+    controlsCell.appendChild(controlsContainer);
+
+    btnAdd.onclick = () => {
+      const rows = Array.from(table.rows);
+      let currentControlsRowIndex = rows.indexOf(controlsRow);
+      const newRow = table.insertRow(currentControlsRowIndex);
+      newRow.style.height = "25.65pt";
+      let cell1 = newRow.insertCell(0);
+      cell1.style.width = "77.9pt";
+      cell1.style.borderTop = "2.25pt solid #000";
+      cell1.style.borderRight = "2.25pt solid #000";
+      cell1.style.borderBottom = "2.25pt solid #000";
+      cell1.style.padding = "0pt";
+      cell1.style.verticalAlign = "top";
+      cell1.innerHTML = `<p class="TableParagraph" style="margin-left:6.9pt; font-size:12pt;">
+                          <strong><span style="font-family:Arial; color:#171717;">&nbsp;</span></strong>
+                        </p>`;
+      let cell2 = newRow.insertCell(1);
+      cell2.style.width = "367.6pt";
+      cell2.style.border = "2.25pt solid #000";
+      cell2.style.padding = "0pt";
+      cell2.style.verticalAlign = "top";
+      cell2.innerHTML = `<p class="TableParagraph" style="font-size:12pt;">
+                          <span style="letter-spacing:-0.1pt; color:#171717;">&nbsp;</span>
+                        </p>`;
+      let cell3 = newRow.insertCell(2);
+      cell3.style.width = "76.95pt";
+      cell3.style.borderTop = "2.25pt solid #000";
+      cell3.style.borderLeft = "2.25pt solid #000";
+      cell3.style.borderBottom = "2.25pt solid #000";
+      cell3.style.padding = "0pt";
+      cell3.style.verticalAlign = "top";
+      cell3.innerHTML = `<p class="TableParagraph" style="margin-left:5.8pt; font-size:12pt;">
+                          <span style="letter-spacing:-0.1pt; color:#171717;">&nbsp;</span>
+                        </p>`;
+    };
+
+    btnDel.onclick = () => {
+      const rows = Array.from(table.rows);
+      let currentControlsRowIndex = rows.indexOf(controlsRow);
+      const deleteIndex = currentControlsRowIndex - 1;
+      if (deleteIndex > secIndex + 1) {
+        table.deleteRow(deleteIndex);
+      }
+    };
+  });
+};
+
+// ✅ Download PDF functionality
+downloadPdfBtn.addEventListener("click", () => {
+  const iframeWindow = iframe.contentWindow || iframe;
+  const doc = iframeWindow.document;
+
+  const printStyle = doc.createElement("style");
+  printStyle.textContent = `
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      table { border-collapse: collapse; width: 100% !important; }
+      th, td { border: 1px solid black !important; padding: 4px; }
+      th { background-color: #f0f0f0 !important; }
+      .page-break { page-break-before: always; }
+    }
+  `;
+  doc.head.appendChild(printStyle);
+
+  const controls = doc.querySelectorAll(".controls-row, .table-controls");
+  controls.forEach(el => el.style.display = "none");
+
+  // ✅ FIX: scale content to fit PDF width
+  doc.body.style.zoom = "100%";
+
+  iframeWindow.focus();
+  iframeWindow.print();
+
+  setTimeout(() => {
+    controls.forEach(el => el.style.display = "");
+    printStyle.remove();
+    doc.body.style.zoom = "80%";
+  }, 1000);
+});
+
+// ✅ Download HTML functionality
+downloadHtmlBtn.addEventListener("click", () => {
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  const controls = doc.querySelectorAll(".controls-row, .table-controls");
+  controls.forEach(el => el.style.display = "none");
+  const htmlContent = doc.documentElement.outerHTML;
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  controls.forEach(el => el.style.display = "");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "edited-document.html";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+</script>
+</body>
+</html>
